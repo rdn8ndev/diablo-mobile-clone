@@ -52,6 +52,7 @@ let map = [];
 let worldWidth = MAP_W * TILE_SIZE;
 let worldHeight = MAP_H * TILE_SIZE;
 let camX = 0, camY = 0;
+let noiseCanvas = null; // cached noise overlay
 let spawnPoint = { x: 0, y: 0 };
 
 function initMap() {
@@ -400,9 +401,40 @@ function draw() {
         if (Math.abs(h2) % 50 === 0 && images.bloodDecal.complete) {
           ctx.drawImage(images.bloodDecal, screenX, screenY, TILE_SIZE, TILE_SIZE);
         }
+        // Per-tile darkening variation (subtle)
+        const hv = (x * 5547) ^ (y * 7411);
+        const v = (hv % 11) - 5; // -5 .. +5
+        let alpha = 0.04 + v / 255;
+        if (alpha < 0.01) alpha = 0.01;
+        if (alpha > 0.08) alpha = 0.08;
+        ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+        ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
       }
     }
   }
+
+  // Noise overlay (cached, once per frame)
+  const cw = canvas.clientWidth, ch = canvas.clientHeight;
+  if (!noiseCanvas || noiseCanvas.width !== cw || noiseCanvas.height !== ch) {
+    const nCanvas = document.createElement('canvas');
+    nCanvas.width = cw;
+    nCanvas.height = ch;
+    const nCtx = nCanvas.getContext('2d');
+    const imgData = nCtx.createImageData(cw, ch);
+    for (let i = 0; i < imgData.data.length; i += 4) {
+      const n = Math.random() * 255;
+      imgData.data[i] = n;
+      imgData.data[i+1] = n;
+      imgData.data[i+2] = n;
+      imgData.data[i+3] = 255;
+    }
+    nCtx.putImageData(imgData, 0, 0);
+    noiseCanvas = nCanvas;
+  }
+  ctx.save();
+  ctx.globalAlpha = 0.05;
+  ctx.drawImage(noiseCanvas, 0, 0);
+  ctx.restore();
 
   // Enemies with sprites
   for (const e of enemies) {

@@ -1,4 +1,4 @@
-// Diablo Mobile Clone - Step 2: Hero directional sprite
+// Diablo Mobile Clone - Step 3: Enemy sprites, attack effects, contact cooldown
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -13,17 +13,23 @@ const HERO_RADIUS = 16;
 const ENEMY_RADIUS = 14;
 const ATTACK_RADIUS = 50;
 const ATTACK_COOLDOWN = 0.2;
-const ENEMY_DAMAGE = 10;
+const ATTACK_EFFECT_DURATION = 0.1;
+const ENEMY_DAMAGE = 10; // contact damage per hit
+const ENEMY_CONTACT_COOLDOWN = 0.4; // seconds
 
 // Load images
 const images = {
   floor: new Image(),
   wall: new Image(),
-  hero: new Image()
+  hero: new Image(),
+  skeleton: new Image(),
+  imp: new Image()
 };
 images.floor.src = 'assets/floor.svg';
 images.wall.src = 'assets/wall.svg';
 images.hero.src = 'assets/hero.svg';
+images.skeleton.src = 'assets/skeleton.svg';
+images.imp.src = 'assets/imp.svg';
 
 // World
 let map = [];
@@ -70,18 +76,28 @@ let hero = {
   gameOver: false
 };
 
-// Enemies (still circles)
+// Enemies
 let enemies = [];
 function spawnEnemies() {
   enemies = [];
   for (let i = 0; i < 5; i++) {
+    const type = i < 3 ? 'skeleton' : 'imp';
     let ex, ey, dist;
     do {
       ex = TILE_SIZE*2 + Math.random() * (worldWidth - 2*TILE_SIZE);
       ey = TILE_SIZE*2 + Math.random() * (worldHeight - 2*TILE_SIZE);
       dist = Math.hypot(ex - hero.x, ey - hero.y);
     } while (dist < 200);
-    enemies.push({ x: ex, y: ey, r: ENEMY_RADIUS, hp: 30, dead: false });
+    enemies.push({
+      x: ex, y: ey,
+      r: ENEMY_RADIUS,
+      hp: type === 'skeleton' ? 30 : 20,
+      maxHp: type === 'skeleton' ? 30 : 20,
+      type: type,
+      dead: false,
+      flash: 0,
+      lastContact: 0
+    });
   }
 }
 
@@ -158,15 +174,22 @@ attackBtn = document.getElementById('attack');
 attackBtn.addEventListener('touchstart', e => {
   e.preventDefault();
   if(hero.attackCooldown <= 0 && !hero.gameOver) {
+    hero.attackCooldown = ATTACK_COOLDOWN;
+    attackEffect = {
+      x: hero.x,
+      y: hero.y,
+      angle: Math.atan2(hero.facing.y, hero.facing.x),
+      timer: ATTACK_EFFECT_DURATION
+    };
     for (const e of enemies) {
       if (e.dead) continue;
       const dist = Math.hypot(e.x - hero.x, e.y - hero.y);
       if (dist < HERO_RADIUS + e.r + ATTACK_RADIUS) {
         e.hp -= 25;
+        e.flash = 0.1;
         if (e.hp <= 0) e.dead = true;
       }
     }
-    hero.attackCooldown = ATTACK_COOLDOWN;
   }
 }, {passive:false});
 
@@ -174,18 +197,18 @@ attackBtn.addEventListener('touchstart', e => {
 document.getElementById('restart').addEventListener('click', initGame);
 
 // Update
+let attackEffect = null; // {x,y,angle,timer}
 function update(dt) {
   if (hero.gameOver) return;
 
   if (hero.attackCooldown > 0) hero.attackCooldown -= dt;
 
-  // Update facing from joystick if moving
   if (jActive && (Math.abs(jVec.x) > 0.1 || Math.abs(jVec.y) > 0.1)) {
     hero.facing.x = jVec.x;
     hero.facing.y = jVec.y;
   }
 
-  // Hero movement with collision
+  // Hero collision-based movement
   if (jActive) {
     const speed = HERO_SPEED * dt;
     let dx = jVec.x * speed;
@@ -194,6 +217,12 @@ function update(dt) {
     if (canMoveTo(newX, hero.y, hero.r)) hero.x = newX;
     const newY = hero.y + dy;
     if (canMoveTo(hero.x, newY, hero.r)) hero.y = newY;
+  }
+
+  // Attack effect timer
+  if (attackEffect) {
+    attackEffect.timer -= dt;
+    if (attackEffect.timer <= 0) attackEffect = null;
   }
 
   // Enemies
@@ -211,20 +240,26 @@ function update(dt) {
       if (canMoveTo(newX, e.y, e.r)) e.x = newX;
       if (canMoveTo(e.x, newY, e.r)) e.y = newY;
     }
-    // Contact damage
+    // Contact damage with cooldown
     if (dist < hero.r + e.r) {
-      hero.hp -= ENEMY_DAMAGE * dt;
-      if (hero.hp <= 0) {
-        hero.hp = 0;
-        hero.gameOver = true;
-        document.getElementById('restart').style.display = 'block';
+      const now = performance.now() / 1000;
+      if (now - e.lastContact > ENEMY_CONTACT_COOLDOWN) {
+        hero.hp -= ENEMY_DAMAGE;
+        e.lastContact = now;
+        if (hero.hp <= 0) {
+          hero.hp = 0;
+          hero.gameOver = true;
+          document.getElementById('restart').style.display = 'block';
+        }
+        updateHpDisplay();
       }
-      updateHpDisplay();
     }
+    // Flash decay
+    if (e.flash > 0) e.flash -= dt;
   }
 }
 
-// Draw helpers
+// Draw
 function drawShadow(x, y, r) {
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
@@ -232,7 +267,6 @@ function drawShadow(x, y, r) {
   ctx.fill();
 }
 
-// Draw
 function draw() {
   const cw = canvas.clientWidth;
   const ch = canvas.clientHeight;
@@ -263,16 +297,41 @@ function draw() {
     }
   }
 
-  // Enemies
+  // Enemies with sprites
   for (const e of enemies) {
     if (e.dead) continue;
     const sx = e.x - camX;
     const sy = e.y - camY;
     drawShadow(sx, sy, e.r);
-    ctx.fillStyle = '#f44';
+    const img = e.type === 'skeleton' ? images.skeleton : images.imp;
+    if (img && img.complete) {
+      ctx.drawImage(img, sx - e.r, sy - e.r, e.r*2, e.r*2);
+    } else {
+      ctx.fillStyle = e.type === 'skeleton' ? '#eee' : '#0a0';
+      ctx.beginPath();
+      ctx.arc(sx, sy, e.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    if (e.flash > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillRect(sx - e.r, sy - e.r, e.r*2, e.r*2);
+    }
+  }
+
+  // Attack wedge
+  if (attackEffect) {
+    const x = attackEffect.x - camX;
+    const y = attackEffect.y - camY;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(attackEffect.angle);
     ctx.beginPath();
-    ctx.arc(sx, sy, e.r, 0, Math.PI*2);
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, ATTACK_RADIUS, -Math.PI/4, Math.PI/4);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,0,0.4)';
     ctx.fill();
+    ctx.restore();
   }
 
   // Hero with sprite

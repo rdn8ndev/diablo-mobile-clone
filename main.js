@@ -5,8 +5,8 @@ const ctx = canvas.getContext('2d');
 
 // Constants
 const TILE_SIZE = 32;
-const MAP_W = 30;
-const MAP_H = 20;
+const MAP_W = 60;
+const MAP_H = 60;
 const HERO_SPEED = 150;
 const ENEMY_SPEED = 60;
 const HERO_RADIUS = 16;
@@ -40,15 +40,77 @@ let map = [];
 let worldWidth = MAP_W * TILE_SIZE;
 let worldHeight = MAP_H * TILE_SIZE;
 let camX = 0, camY = 0;
+let spawnPoint = { x: 0, y: 0 };
 
 function initMap() {
-  map = [];
-  for (let y = 0; y < MAP_H; y++) {
-    let row = [];
-    for (let x = 0; x < MAP_W; x++) {
-      row.push((x===0 || y===0 || x===MAP_W-1 || y===MAP_H-1) ? 1 : 0);
+  // Fill with walls
+  map = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(1));
+  const rooms = [];
+  const maxRooms = 8;
+  const minSize = 5, maxSize = 12;
+
+  for (let i = 0; i < maxRooms; i++) {
+    const w = minSize + Math.floor(Math.random() * (maxSize - minSize + 1));
+    const h = minSize + Math.floor(Math.random() * (maxSize - minSize + 1));
+    const x = 1 + Math.floor(Math.random() * (MAP_W - w - 2));
+    const y = 1 + Math.floor(Math.random() * (MAP_H - h - 2));
+    const newRoom = { x, y, w, h };
+
+    // Check overlap with 1-tile padding
+    let overlaps = false;
+    for (const room of rooms) {
+      if (x < room.x + room.w + 1 && x + w + 1 > room.x &&
+          y < room.y + room.h + 1 && y + h + 1 > room.y) {
+        overlaps = true;
+        break;
+      }
     }
-    map.push(row);
+    if (overlaps) continue;
+
+    // Carve floor (0)
+    for (let ry = y; ry < y + h; ry++) {
+      for (let rx = x; rx < x + w; rx++) {
+        map[ry][rx] = 0;
+      }
+    }
+    rooms.push(newRoom);
+
+    // Connect to previous room via L-shaped corridor
+    if (rooms.length > 1) {
+      const prev = rooms[rooms.length - 2];
+      const cx1 = Math.floor(prev.x + prev.w / 2);
+      const cy1 = Math.floor(prev.y + prev.h / 2);
+      const cx2 = Math.floor(newRoom.x + newRoom.w / 2);
+      const cy2 = Math.floor(newRoom.y + newRoom.h / 2);
+      if (Math.random() < 0.5) {
+        // Horizontal then vertical
+        for (let x2 = Math.min(cx1, cx2); x2 <= Math.max(cx1, cx2); x2++) {
+          map[cy1][x2] = 0;
+        }
+        for (let y2 = Math.min(cy1, cy2); y2 <= Math.max(cy1, cy2); y2++) {
+          map[y2][cx2] = 0;
+        }
+      } else {
+        // Vertical then horizontal
+        for (let y2 = Math.min(cy1, cy2); y2 <= Math.max(cy1, cy2); y2++) {
+          map[y2][cx1] = 0;
+        }
+        for (let x2 = Math.min(cx1, cx2); x2 <= Math.max(cx1, cx2); x2++) {
+          map[cy2][x2] = 0;
+        }
+      }
+    }
+  }
+
+  // Set spawn point to center of first room (or map center if no rooms)
+  if (rooms.length > 0) {
+    const first = rooms[0];
+    spawnPoint = {
+      x: (first.x + first.w / 2) * TILE_SIZE,
+      y: (first.y + first.h / 2) * TILE_SIZE
+    };
+  } else {
+    spawnPoint = { x: (MAP_W * TILE_SIZE) / 2, y: (MAP_H * TILE_SIZE) / 2 };
   }
 }
 
@@ -107,8 +169,8 @@ function spawnEnemies() {
 
 function initGame() {
   initMap();
-  hero.x = worldWidth / 2;
-  hero.y = worldHeight / 2;
+  hero.x = spawnPoint.x;
+  hero.y = spawnPoint.y;
   hero.facing = { x: 1, y: 0 };
   hero.hp = hero.maxHp;
   hero.attackCooldown = 0;

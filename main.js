@@ -19,13 +19,15 @@ const ENEMY_CONTACT_COOLDOWN = 0.4; // seconds
 
 // Load images
 const images = {
-  floor: new Image(),
+  floor: [new Image(), new Image(), new Image()], // three variations
   wall: new Image(),
   hero: new Image(),
   skeleton: new Image(),
   imp: new Image()
 };
-images.floor.src = 'assets/tiles/floor_stone_0.png'; // upgraded texture
+images.floor[0].src = 'assets/tiles/floor_stone_0.png';
+images.floor[1].src = 'assets/tiles/floor_stone_1.png';
+images.floor[2].src = 'assets/tiles/floor_stone_2.png';
 images.wall.src = 'assets/wall.svg';
 images.hero.src = 'assets/hero.svg';
 images.skeleton.src = 'assets/skeleton.svg';
@@ -287,12 +289,25 @@ function draw() {
     for (let x = startCol; x <= endCol; x++) {
       if (y < 0 || y >= MAP_H || x < 0 || x >= MAP_W) continue;
       const tile = map[y][x];
-      const img = tile === 1 ? images.wall : images.floor;
-      if (img.complete) {
-        ctx.drawImage(img, x*TILE_SIZE - camX, y*TILE_SIZE - camY, TILE_SIZE, TILE_SIZE);
-      } else {
-        ctx.fillStyle = tile===1 ? '#222' : '#444';
-        ctx.fillRect(x*TILE_SIZE - camX, y*TILE_SIZE - camY, TILE_SIZE, TILE_SIZE);
+      const screenX = x * TILE_SIZE - camX;
+      const screenY = y * TILE_SIZE - camY;
+      if (tile === 1) { // wall
+        if (images.wall.complete) {
+          ctx.drawImage(images.wall, screenX, screenY, TILE_SIZE, TILE_SIZE);
+        } else {
+          ctx.fillStyle = '#222';
+          ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
+        }
+      } else { // floor
+        const h = (x * 73856093) ^ (y * 19349663);
+        const tileIdx = Math.abs(h) % 3;
+        const floorImg = images.floor[tileIdx];
+        if (floorImg && floorImg.complete) {
+          ctx.drawImage(floorImg, screenX, screenY, TILE_SIZE, TILE_SIZE);
+        } else {
+          ctx.fillStyle = '#444';
+          ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
+        }
       }
     }
   }

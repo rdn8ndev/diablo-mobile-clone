@@ -351,6 +351,20 @@ function draw() {
     ctx.arc(hx, hy, hero.r, 0, Math.PI*2);
     ctx.fill();
   }
+
+  // Vignette: radial gradient centered on hero, inner 0 alpha, outer 0.65
+  {
+    const cw = canvas.clientWidth;
+    const ch = canvas.clientHeight;
+    const cx = hx; // already computed hero screen position
+    const cy = hy;
+    const radius = Math.hypot(cw, ch) / 1.5; // cover corners
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.65)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, cw, ch);
+  }
 }
 
 // Loop

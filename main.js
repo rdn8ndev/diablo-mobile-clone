@@ -27,6 +27,16 @@ const images = {
   crackDecal: new Image(),
   bloodDecal: new Image()
 };
+
+// Build marker (hardcoded; bump manually per commit)
+const BUILD_ID = "dev-1";
+(function addBuildMarker() {
+  const marker = document.createElement('div');
+  marker.id = 'build-marker';
+  marker.style.cssText = 'position:absolute;top:10px;right:10px;color:#aaa;font-size:12px;pointer-events:auto;z-index:20;';
+  marker.textContent = 'build: ' + BUILD_ID;
+  document.body.appendChild(marker);
+})();
 images.floor[0].src = 'assets/tiles/floor_stone_0.png';
 images.floor[1].src = 'assets/tiles/floor_stone_1.png';
 images.floor[2].src = 'assets/tiles/floor_stone_2.png';

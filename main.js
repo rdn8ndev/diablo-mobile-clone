@@ -25,7 +25,7 @@ const images = {
   skeleton: new Image(),
   imp: new Image()
 };
-images.floor.src = 'assets/floor.svg';
+images.floor.src = 'assets/tiles/floor_stone_0.png'; // upgraded texture
 images.wall.src = 'assets/wall.svg';
 images.hero.src = 'assets/hero.svg';
 images.skeleton.src = 'assets/skeleton.svg';

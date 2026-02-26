@@ -24,7 +24,8 @@ const images = {
   hero: new Image(),
   skeleton: new Image(),
   imp: new Image(),
-  crackDecal: new Image()
+  crackDecal: new Image(),
+  bloodDecal: new Image()
 };
 images.floor[0].src = 'assets/tiles/floor_stone_0.png';
 images.floor[1].src = 'assets/tiles/floor_stone_1.png';
@@ -33,7 +34,8 @@ images.wall.src = 'assets/tiles/wall_stone_0.png'; // upgraded texture
 images.hero.src = 'assets/hero.svg';
 images.skeleton.src = 'assets/skeleton.svg';
 images.imp.src = 'assets/imp.svg';
-images.crackDecal.src = 'assets/tiles/decal_crack_0.png';
+images.crackDecal.src = 'assets/decals/crack_0.png';
+images.bloodDecal.src = 'assets/decals/blood_0.png';
 
 // World
 let map = [];
@@ -379,10 +381,14 @@ function draw() {
           ctx.fillStyle = '#444';
           ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
         }
-        // Overlay crack decal on ~5% of tiles (deterministic)
-        const d = (x * 12664745) ^ (y * 67511533);
-        if (Math.abs(d) % 20 === 0 && images.crackDecal.complete) {
+        // Overlay decals deterministically
+        const h1 = (x * 9876541) ^ (y * 1234567);
+        if (Math.abs(h1) % 17 === 0 && images.crackDecal.complete) {
           ctx.drawImage(images.crackDecal, screenX, screenY, TILE_SIZE, TILE_SIZE);
+        }
+        const h2 = (x * 55557777) ^ (y * 99991111);
+        if (Math.abs(h2) % 50 === 0 && images.bloodDecal.complete) {
+          ctx.drawImage(images.bloodDecal, screenX, screenY, TILE_SIZE, TILE_SIZE);
         }
       }
     }

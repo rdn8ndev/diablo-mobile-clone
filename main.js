@@ -298,6 +298,13 @@ function draw() {
           ctx.fillStyle = '#222';
           ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
         }
+        // Wall edge shading for depth
+        // Top highlight (2px)
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(screenX, screenY, TILE_SIZE, 2);
+        // Bottom shadow (4px)
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(screenX, screenY + TILE_SIZE - 4, TILE_SIZE, 4);
       } else { // floor
         const h = (x * 73856093) ^ (y * 19349663);
         const tileIdx = Math.abs(h) % 3;

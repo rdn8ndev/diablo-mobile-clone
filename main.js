@@ -23,7 +23,8 @@ const images = {
   wall: new Image(),
   hero: new Image(),
   skeleton: new Image(),
-  imp: new Image()
+  imp: new Image(),
+  crackDecal: new Image()
 };
 images.floor[0].src = 'assets/tiles/floor_stone_0.png';
 images.floor[1].src = 'assets/tiles/floor_stone_1.png';
@@ -32,6 +33,7 @@ images.wall.src = 'assets/tiles/wall_stone_0.png'; // upgraded texture
 images.hero.src = 'assets/hero.svg';
 images.skeleton.src = 'assets/skeleton.svg';
 images.imp.src = 'assets/imp.svg';
+images.crackDecal.src = 'assets/tiles/decal_crack_0.png';
 
 // World
 let map = [];
@@ -314,6 +316,11 @@ function draw() {
         } else {
           ctx.fillStyle = '#444';
           ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
+        }
+        // Overlay crack decal on ~5% of tiles (deterministic)
+        const d = (x * 12664745) ^ (y * 67511533);
+        if (Math.abs(d) % 20 === 0 && images.crackDecal.complete) {
+          ctx.drawImage(images.crackDecal, screenX, screenY, TILE_SIZE, TILE_SIZE);
         }
       }
     }

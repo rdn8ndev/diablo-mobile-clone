@@ -304,17 +304,19 @@ function draw() {
     const sy = e.y - camY;
     drawShadow(sx, sy, e.r);
     const img = e.type === 'skeleton' ? images.skeleton : images.imp;
+    const scale = 1.15;
+    const drawRadius = e.r * scale;
     if (img && img.complete) {
-      ctx.drawImage(img, sx - e.r, sy - e.r, e.r*2, e.r*2);
+      ctx.drawImage(img, sx - drawRadius, sy - drawRadius, drawRadius*2, drawRadius*2);
     } else {
       ctx.fillStyle = e.type === 'skeleton' ? '#eee' : '#0a0';
       ctx.beginPath();
-      ctx.arc(sx, sy, e.r, 0, Math.PI*2);
+      ctx.arc(sx, sy, drawRadius, 0, Math.PI*2);
       ctx.fill();
     }
     if (e.flash > 0) {
       ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.fillRect(sx - e.r, sy - e.r, e.r*2, e.r*2);
+      ctx.fillRect(sx - drawRadius, sy - drawRadius, drawRadius*2, drawRadius*2);
     }
   }
 

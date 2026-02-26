@@ -1,4 +1,4 @@
-// Diablo Mobile Clone - Upgraded Step 1: Tile map, camera, and collision. Sprites still TBD.
+// Diablo Mobile Clone - Step 2: Hero directional sprite
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -7,21 +7,23 @@ const ctx = canvas.getContext('2d');
 const TILE_SIZE = 32;
 const MAP_W = 30;
 const MAP_H = 20;
-const HERO_SPEED = 150; // px/s
+const HERO_SPEED = 150;
 const ENEMY_SPEED = 60;
 const HERO_RADIUS = 16;
 const ENEMY_RADIUS = 14;
 const ATTACK_RADIUS = 50;
-const ATTACK_COOLDOWN = 0.2; // s
-const ENEMY_DAMAGE = 10; // per second? we'll apply per dt
+const ATTACK_COOLDOWN = 0.2;
+const ENEMY_DAMAGE = 10;
 
-// Load floor/wall images
+// Load images
 const images = {
   floor: new Image(),
-  wall: new Image()
+  wall: new Image(),
+  hero: new Image()
 };
 images.floor.src = 'assets/floor.svg';
 images.wall.src = 'assets/wall.svg';
+images.hero.src = 'assets/hero.svg';
 
 // World
 let map = [];
@@ -29,7 +31,6 @@ let worldWidth = MAP_W * TILE_SIZE;
 let worldHeight = MAP_H * TILE_SIZE;
 let camX = 0, camY = 0;
 
-// Initialize map: border walls, interior floor
 function initMap() {
   map = [];
   for (let y = 0; y < MAP_H; y++) {
@@ -41,7 +42,6 @@ function initMap() {
   }
 }
 
-// Collision
 function isSolidTile(tx, ty) {
   if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H) return true;
   return map[ty][tx] === 1;
@@ -65,13 +65,13 @@ let hero = {
   r: HERO_RADIUS,
   hp: 100,
   maxHp: 100,
+  facing: { x: 1, y: 0 },
   attackCooldown: 0,
   gameOver: false
 };
 
-// Enemies
-let enemies = []; // {x,y,r,hp,dead}
-
+// Enemies (still circles)
+let enemies = [];
 function spawnEnemies() {
   enemies = [];
   for (let i = 0; i < 5; i++) {
@@ -89,6 +89,7 @@ function initGame() {
   initMap();
   hero.x = worldWidth / 2;
   hero.y = worldHeight / 2;
+  hero.facing = { x: 1, y: 0 };
   hero.hp = hero.maxHp;
   hero.attackCooldown = 0;
   hero.gameOver = false;
@@ -101,7 +102,7 @@ function updateHpDisplay() {
   document.getElementById('hp').textContent = 'HP: ' + Math.ceil(hero.hp);
 }
 
-// Resize canvas
+// Resize
 function resize() {
   const dpr = window.devicePixelRatio || 1;
   const w = window.innerWidth, h = window.innerHeight;
@@ -153,11 +154,10 @@ function moveJoystick(touch) {
 }
 
 // Attack
-const attackBtn = document.getElementById('attack');
+attackBtn = document.getElementById('attack');
 attackBtn.addEventListener('touchstart', e => {
   e.preventDefault();
   if(hero.attackCooldown <= 0 && !hero.gameOver) {
-    // Damage all enemies within ATTACK_RADIUS
     for (const e of enemies) {
       if (e.dead) continue;
       const dist = Math.hypot(e.x - hero.x, e.y - hero.y);
@@ -177,8 +177,13 @@ document.getElementById('restart').addEventListener('click', initGame);
 function update(dt) {
   if (hero.gameOver) return;
 
-  // Cooldown
   if (hero.attackCooldown > 0) hero.attackCooldown -= dt;
+
+  // Update facing from joystick if moving
+  if (jActive && (Math.abs(jVec.x) > 0.1 || Math.abs(jVec.y) > 0.1)) {
+    hero.facing.x = jVec.x;
+    hero.facing.y = jVec.y;
+  }
 
   // Hero movement with collision
   if (jActive) {
@@ -206,7 +211,7 @@ function update(dt) {
       if (canMoveTo(newX, e.y, e.r)) e.x = newX;
       if (canMoveTo(e.x, newY, e.r)) e.y = newY;
     }
-    // Contact damage (every frame while overlapping)
+    // Contact damage
     if (dist < hero.r + e.r) {
       hero.hp -= ENEMY_DAMAGE * dt;
       if (hero.hp <= 0) {
@@ -219,7 +224,7 @@ function update(dt) {
   }
 }
 
-// Draw shadow helper
+// Draw helpers
 function drawShadow(x, y, r) {
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
@@ -233,19 +238,17 @@ function draw() {
   const ch = canvas.clientHeight;
   ctx.clearRect(0, 0, cw, ch);
 
-  // Update camera
   camX = hero.x - cw/2;
   camY = hero.y - ch/2;
   camX = Math.max(0, Math.min(camX, worldWidth - cw));
   camY = Math.max(0, Math.min(camY, worldHeight - ch));
 
-  // Visible tile range
   const startCol = Math.floor(camX / TILE_SIZE);
   const endCol = Math.ceil((camX + cw) / TILE_SIZE);
   const startRow = Math.floor(camY / TILE_SIZE);
   const endRow = Math.ceil((camY + ch) / TILE_SIZE);
 
-  // Draw tiles
+  // Tiles
   for (let y = startRow; y <= endRow; y++) {
     for (let x = startCol; x <= endCol; x++) {
       if (y < 0 || y >= MAP_H || x < 0 || x >= MAP_W) continue;
@@ -260,7 +263,7 @@ function draw() {
     }
   }
 
-  // Draw enemies (red circles)
+  // Enemies
   for (const e of enemies) {
     if (e.dead) continue;
     const sx = e.x - camX;
@@ -272,14 +275,21 @@ function draw() {
     ctx.fill();
   }
 
-  // Draw hero (blue circle)
-  {
-    const sx = hero.x - camX;
-    const sy = hero.y - camY;
-    drawShadow(sx, sy, hero.r);
+  // Hero with sprite
+  const hx = hero.x - camX;
+  const hy = hero.y - camY;
+  drawShadow(hx, hy, hero.r);
+  if (images.hero.complete) {
+    ctx.save();
+    ctx.translate(hx, hy);
+    const angle = Math.atan2(hero.facing.y, hero.facing.x);
+    ctx.rotate(angle);
+    ctx.drawImage(images.hero, -hero.r, -hero.r, hero.r*2, hero.r*2);
+    ctx.restore();
+  } else {
     ctx.fillStyle = '#4af';
     ctx.beginPath();
-    ctx.arc(sx, sy, hero.r, 0, Math.PI*2);
+    ctx.arc(hx, hy, hero.r, 0, Math.PI*2);
     ctx.fill();
   }
 }
@@ -294,6 +304,5 @@ function loop(timestamp) {
   requestAnimationFrame(loop);
 }
 
-// Start
 initGame();
 requestAnimationFrame(loop);

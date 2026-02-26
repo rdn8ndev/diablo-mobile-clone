@@ -343,6 +343,14 @@ function draw() {
     ctx.translate(hx, hy);
     const angle = Math.atan2(hero.facing.y, hero.facing.x);
     ctx.rotate(angle);
+    // Outline: draw black copies offset ±2px
+    ctx.filter = 'grayscale(100%) brightness(0%)';
+    const offsets = [[-2,-2], [-2,2], [2,-2], [2,2]];
+    for (const [dx, dy] of offsets) {
+      ctx.drawImage(images.hero, -hero.r + dx, -hero.r + dy, hero.r*2, hero.r*2);
+    }
+    ctx.filter = 'none';
+    // Normal sprite
     ctx.drawImage(images.hero, -hero.r, -hero.r, hero.r*2, hero.r*2);
     ctx.restore();
   } else {

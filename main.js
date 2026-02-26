@@ -17,6 +17,9 @@ const ATTACK_EFFECT_DURATION = 0.1;
 const ENEMY_DAMAGE = 10; // contact damage per hit
 const ENEMY_CONTACT_COOLDOWN = 0.4; // seconds
 
+// Debug overlay toggle
+const DEBUG_GRID = true;
+
 // Load images
 const images = {
   floor: [new Image(), new Image(), new Image()], // three variations
@@ -513,6 +516,31 @@ function draw() {
     grad.addColorStop(1, 'rgba(0,0,0,0.65)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, cw, ch);
+  }
+
+  // Debug overlay: wall collision grid + enemy tile coordinates
+  if (DEBUG_GRID) {
+    // Wall overlay: semi-transparent red on visible wall tiles
+    for (let y = startRow; y <= endRow; y++) {
+      for (let x = startCol; x <= endCol; x++) {
+        if (y < 0 || y >= MAP_H || x < 0 || x >= MAP_W) continue;
+        if (map[y][x] === 1) {
+          ctx.fillStyle = 'rgba(255,0,0,0.25)';
+          ctx.fillRect(x * TILE_SIZE - camX, y * TILE_SIZE - camY, TILE_SIZE, TILE_SIZE);
+        }
+      }
+    }
+    // Enemy tile coordinate labels
+    ctx.fillStyle = 'yellow';
+    ctx.font = '10px sans-serif';
+    for (const e of enemies) {
+      if (e.dead) continue;
+      const tx = Math.floor(e.x / TILE_SIZE);
+      const ty = Math.floor(e.y / TILE_SIZE);
+      const sx = e.x - camX;
+      const sy = e.y - camY;
+      ctx.fillText(`${tx},${ty}`, sx, sy);
+    }
   }
 }
 

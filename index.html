@@ -1,32 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Diablo Mobile Clone</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Diablo Mobile Clone</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="game-container">
-    <canvas id="game-canvas"></canvas>
-
-    <!-- UI Overlay -->
-    <div id="ui-layer">
-      <div id="hp-display">HP: <span id="hp-value">100</span></div>
-      <button id="restart-btn" style="display:none;">Restart</button>
-    </div>
-
-    <!-- Touch Controls -->
-    <div id="touch-controls">
-      <div id="joystick-area">
-        <div id="joystick-base">
-          <div id="joystick-stick"></div>
-        </div>
-      </div>
-      <button id="attack-btn">ATTACK</button>
-    </div>
-  </div>
-
-  <script src="main.js"></script>
+<canvas id="canvas"></canvas>
+<div id="ui">
+  <div id="hp">HP: 100</div>
+  <button id="restart" style="display:none;">Restart</button>
+</div>
+<div id="controls">
+  <div id="joystick-area"><div id="stick"></div></div>
+  <button id="attack">ATTACK</button>
+</div>
+<script src="main.js"></script>
 </body>
 </html>
